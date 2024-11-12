@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini PDF Question Verifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Question Verifier</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="pdf">Upload PDF:</label>
+            <input type="file" id="pdf" name="pdf" accept="application/pdf" required>
+            <button type="submit">Generate Question</button>
+        </form>
+
+        <div id="questionContainer" style="display: none;">
+            <h2>Generated Question:</h2>
+            <p id="question"></p>
+            <label for="answer">Your Answer:</label>
+            <textarea id="answer" required></textarea>
+            <button id="verifyButton">Verify Answer</button>
+            <p id="verificationResult"></p>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const questionContainer = document.getElementById('questionContainer');
+        const questionElement = document.getElementById('question');
+        const verifyButton = document.getElementById('verifyButton');
+        const verificationResult = document.getElementById('verificationResult');
+        let pdfText = '';
+
+        uploadForm.onsubmit = async (event) => {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                questionElement.textContent = data.question;
+                pdfText = await formData.get('pdf').text();
+                questionContainer.style.display = 'block';
+            } else {
+                alert("Error generating question. Please try again.");
+            }
+        };
+
+        verifyButton.onclick = async () => {
+            const answer = document.getElementById('answer').value;
+
+            const response = await fetch('/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ answer: answer, pdf_text: pdfText })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                verificationResult.textContent = data.is_correct ? "Correct answer!" : "Incorrect answer.";
+            } else {
+                verificationResult.textContent = "Error verifying answer. Please try again.";
+            }
+        };
+    </script>
+</body>
+</html>
